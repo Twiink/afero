@@ -70,7 +70,7 @@ func (fs *Fs) MkdirAll(path string, perm os.FileMode) error { return syscall.EPE
 func (fs *Fs) Open(name string) (afero.File, error) {
 	d, f := splitpath(name)
 	if f == "" {
-		return &File{fs: fs, isdir: true}, nil
+		return &File{name: d, fs: fs, isdir: true}, nil
 	}
 	if _, ok := fs.files[d]; !ok {
 		return nil, &os.PathError{Op: "stat", Path: name, Err: syscall.ENOENT}
@@ -79,14 +79,16 @@ func (fs *Fs) Open(name string) (afero.File, error) {
 	if !ok {
 		return nil, &os.PathError{Op: "stat", Path: name, Err: syscall.ENOENT}
 	}
+	fileName := filepath.Join(d, f)
 	if file == nil {
 		return &File{
+			name:      fileName,
 			fs:        fs,
-			pseudodir: &pseudoDir{path: filepath.Join(d, f)},
+			pseudodir: &pseudoDir{path: fileName},
 			isdir:     true,
 		}, nil
 	}
-	return &File{fs: fs, zipfile: file, isdir: file.FileInfo().IsDir()}, nil
+	return &File{name: fileName, fs: fs, zipfile: file, isdir: file.FileInfo().IsDir()}, nil
 }
 
 func (fs *Fs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {

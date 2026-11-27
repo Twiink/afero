@@ -4,13 +4,13 @@ import (
 	"archive/zip"
 	"io"
 	"os"
-	"path/filepath"
 	"syscall"
 
 	"github.com/spf13/afero"
 )
 
 type File struct {
+	name          string
 	fs            *Fs
 	zipfile       *zip.File
 	pseudodir     *pseudoDir
@@ -106,13 +106,7 @@ func (f *File) Write(p []byte) (n int, err error) { return 0, syscall.EPERM }
 func (f *File) WriteAt(p []byte, off int64) (n int, err error) { return 0, syscall.EPERM }
 
 func (f *File) Name() string {
-	if f.zipfile == nil {
-		if f.pseudodir != nil {
-			return f.pseudodir.path
-		}
-		return string(filepath.Separator)
-	}
-	return filepath.Join(splitpath(f.zipfile.Name))
+	return f.name
 }
 
 func (f *File) getDirEntries() (map[string]*zip.File, error) {

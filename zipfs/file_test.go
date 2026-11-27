@@ -3,6 +3,7 @@ package zipfs
 import (
 	"archive/zip"
 	"io"
+	"path/filepath"
 	"testing"
 )
 
@@ -39,5 +40,32 @@ func TestFileRead(t *testing.T) {
 	}
 	if n != 0 {
 		t.Errorf("Expected read length to be 0, found: %d", n)
+	}
+}
+
+func TestFileNameAfterClose(t *testing.T) {
+	archive, err := zip.OpenReader("testdata/t.zip")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer archive.Close()
+	fs := New(&archive.Reader)
+	for _, path := range []string{"testFile", "testDir1/testFile", "testDir1", "sub", "/"} {
+		t.Run(path, func(t *testing.T) {
+			file, err := fs.Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			name := filepath.Join(string(filepath.Separator), filepath.FromSlash(path))
+			if got := file.Name(); got != name {
+				t.Fatalf("Name() = %q, want %q", got, name)
+			}
+			if err := file.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if got := file.Name(); got != name {
+				t.Errorf("Name() after Close() = %q, want %q", got, name)
+			}
+		})
 	}
 }
